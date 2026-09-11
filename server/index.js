@@ -43,6 +43,18 @@ if (!isProduction) {
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: false }));
 
+// Serve static frontend
+const clientPath = path.join(__dirname, '..', 'client', 'dist');
+app.use(express.static(clientPath));
+
+// SPA fallback - serve index.html for all non-API routes
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.join(clientPath, 'index.html'));
+});
+
 // Trust reverse proxy (e.g. Render) for secure cookies
 app.set('trust proxy', 1);
 
@@ -72,17 +84,7 @@ app.use('/api/', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/clans', clanRoutes);
 
-// Serve static frontend in production
-if (isProduction) {
-  const clientPath = path.join(__dirname, '..', 'client', 'dist');
-  app.use(express.static(clientPath));
-  // SPA fallback - serve index.html for all non-API routes
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(clientPath, 'index.html'));
-    }
-  });
-}
+
 
 // Global error handler
 app.use((err, req, res, next) => {
